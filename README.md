@@ -30,7 +30,7 @@ RTK Query/
 │       ├── services/                 email.service.js (send with Nodemailer), email.templates.js (welcome / reset emails)
 │       ├── middlewares/              shared: error, upload (multer), rateLimit
 │       ├── routes/index.js           mounts every feature under /api
-│       └── utils/                    regex.js, image.js (upload / delete on Cloudinary)
+│       └── utils/                    regex.js, random.js (code / token from bcryptjs), image.js (upload / delete on Cloudinary)
 │
 └── frontend/
     ├── .env / .env.example           VITE_API_URL
@@ -117,8 +117,9 @@ Frontend: `frontend/.env` has `VITE_API_URL=http://localhost:5001/api`.
 - Unverified registrations delete themselves (MongoDB TTL index on `pending-user.model.js`).
 - This flow needs the mailer: without SMTP, registration returns an error.
 
-- Passwords are hashed with bcrypt. Rule: at least 8 characters with a letter and a number.
-- Forgot password: a link valid for 15 minutes is emailed. Only the hash of the token is stored. The response is always the same, so nobody can find out which emails are registered.
+- Everything that is hashed (passwords, email codes, reset tokens) uses `bcryptjs`. The random 6-digit code and the reset token also come from `bcryptjs` (its salt generator, see `utils/random.js`), so the project does not import Node's `crypto` at all.
+- Passwords: rule: at least 8 characters with a letter and a number.
+- Forgot password: a link valid for 15 minutes is emailed. The link holds `<userId>.<randomToken>` and only the bcrypt hash of the random part is stored. The response is always the same, so nobody can find out which emails are registered.
 - `protect` middleware guards `/api/students` and `/api/dashboard`.
 - Every student belongs to a user, so users only see and change their own students.
 - Login and forgot-password are rate limited.

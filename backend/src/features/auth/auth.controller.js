@@ -1,9 +1,10 @@
-import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import User from "./user.model.js";
 import PendingUser from "./pending-user.model.js";
 import { uploadImage, deleteImage } from "../../utils/image.js";
+import { randomOtp } from "../../utils/random.js";
 import { sendEmail } from "../../services/email.service.js";
 import { welcomeMail, resetMail, otpMail } from "../../services/email.templates.js";
 
@@ -15,9 +16,6 @@ const RESEND_WAIT_MS = 60 * 1000; // a new code can be requested once a minute
 const MAX_ATTEMPTS = 5; // wrong codes allowed before the registration is cancelled
 
 const normalizeEmail = (email) => String(email || "").toLowerCase().trim();
-const createOtp = () => String(crypto.randomInt(100000, 1000000)); // 6 digits
-const hashOtp = (otp) => crypto.createHmac("sha256", process.env.JWT_SECRET).update(otp).digest("hex");
-const sameHash = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
 const assertCanSendNewCode = (pending, res) => {
   const secondsLeft = Math.ceil((pending.otpSentAt.getTime() + RESEND_WAIT_MS - Date.now()) / 1000);
@@ -52,13 +50,13 @@ export const register = async (req, res) => {
   const existing = await PendingUser.findOne({ email: candidate.email });
   if (existing) assertCanSendNewCode(existing, res);
 
-  const otp = createOtp();
+  const otp = await randomOtp();
   const pending = await PendingUser.findOneAndUpdate(
     { email: candidate.email },
     {
       name: candidate.name,
       password: await bcrypt.hash(password, 10),
-      otpHash: hashOtp(otp),
+      otpHash: await bcrypt.hash(otp, 10),
       otpSentAt: new Date(),
       attempts: 0,
       expiresAt: new Date(Date.now() + OTP_TTL_MS),
@@ -91,7 +89,7 @@ export const verifyEmail = async (req, res) => {
     res.status(429);
     throw new Error("Too many wrong attempts. Please register again.");
   }
-  if (!sameHash(hashOtp(String(otp || "")), pending.otpHash)) {
+  if (!(await bcrypt.compare(String(otp || ""), pending.otpHash))) {
     pending.attempts += 1;
     await pending.save();
     res.status(400);
@@ -130,9 +128,9 @@ export const resendOtp = async (req, res) => {
   }
   assertCanSendNewCode(pending, res);
 
-  const otp = createOtp();
+  const otp = await randomOtp();
   pending.set({
-    otpHash: hashOtp(otp),
+    otpHash: await bcrypt.hash(otp, 10),
     otpSentAt: new Date(),
     attempts: 0,
     expiresAt: new Date(Date.now() + OTP_TTL_MS),
@@ -165,7 +163,7 @@ export const forgotPassword = async (req, res) => {
   const user = await User.findOne({ email: String(req.body.email || "").toLowerCase().trim() });
 
   if (user) {
-    const token = user.createResetToken();
+    const token = await user.createResetToken();
     await user.save({ validateBeforeSave: false });
 
     const link = `${process.env.CLIENT_URL}/reset-password/${token}`;
@@ -186,13 +184,15 @@ export const forgotPassword = async (req, res) => {
 
 // POST /api/auth/reset-password/:token
 export const resetPassword = async (req, res) => {
-  const hashedToken = crypto.createHash("sha256").update(req.params.token).digest("hex");
-  const user = await User.findOne({
-    resetPasswordToken: hashedToken,
-    resetPasswordExpire: { $gt: Date.now() },
-  });
+  // The link token looks like "<userId>.<randomToken>": the id finds the user, bcrypt checks the token
+  const [id, token] = String(req.params.token).split(".");
+  const user =
+    mongoose.isValidObjectId(id) && token
+      ? await User.findOne({ _id: id, resetPasswordExpire: { $gt: Date.now() } }).select("+resetPasswordToken")
+      : null;
+  const valid = user?.resetPasswordToken && (await bcrypt.compare(token, user.resetPasswordToken));
 
-  if (!user) {
+  if (!valid) {
     res.status(400);
     throw new Error("Reset link is invalid or has expired");
   }

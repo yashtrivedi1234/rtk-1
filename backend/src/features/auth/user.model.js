@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import { nameRegex, emailRegex, passwordRegex } from "../../utils/regex.js";
+import { randomToken } from "../../utils/random.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -56,12 +56,13 @@ userSchema.methods.matchPassword = function (plainPassword) {
   return bcrypt.compare(plainPassword, this.password);
 };
 
-// The email gets the real token, the database only keeps its hash (a leaked DB cannot be used to reset passwords)
-userSchema.methods.createResetToken = function () {
-  const token = crypto.randomBytes(32).toString("hex");
-  this.resetPasswordToken = crypto.createHash("sha256").update(token).digest("hex");
+// The email gets "<userId>.<randomToken>", the database only keeps the bcrypt hash of the random part
+// (a leaked database cannot be used to reset passwords)
+userSchema.methods.createResetToken = async function () {
+  const token = await randomToken();
+  this.resetPasswordToken = await bcrypt.hash(token, 10);
   this.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
-  return token;
+  return `${this._id}.${token}`;
 };
 
 export default mongoose.model("User", userSchema);
