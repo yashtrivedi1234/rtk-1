@@ -1,37 +1,10 @@
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
 import {
   useAddStudentMutation,
   useUpdateStudentMutation,
-} from "../services/studentApi";
-
-// Yup schema: validation ke saare rules yaha likhte hain
-// Regex (pattern) ek jagah, taaki samjhana easy ho
-const nameRegex = /^[A-Za-z ]+$/; // sirf letters aur space
-const emailRegex = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/; // abc@xyz.com
-const courseRegex = /^[A-Za-z0-9 .+#-]+$/; // letters, numbers, space aur . + # -
-
-const schema = yup.object({
-  name: yup
-    .string()
-    .trim()
-    .required("Name zaroori hai")
-    .min(2, "Name kam se kam 2 letters ka ho")
-    .matches(nameRegex, "Name me sirf letters allowed hain"),
-  email: yup
-    .string()
-    .trim()
-    .required("Email zaroori hai")
-    .matches(emailRegex, "Sahi email daalo (jaise abc@gmail.com)"),
-  course: yup
-    .string()
-    .trim()
-    .required("Course zaroori hai")
-    .matches(courseRegex, "Course me special characters allowed nahi hain"),
-});
-
-const empty = { name: "", email: "", course: "" };
+} from "./studentApi";
+import { studentSchema, emptyStudent } from "./studentSchema";
 
 // Label + input + error message ek jagah
 const Field = ({ label, error, ...inputProps }) => (
@@ -54,8 +27,8 @@ const StudentForm = ({ editing, onDone }) => {
     reset,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: yupResolver(schema), // resolver yup ko react-hook-form se jodta hai
-    defaultValues: editing || empty, // edit mode me purana data bhara hota hai
+    resolver: yupResolver(studentSchema), // resolver yup ko react-hook-form se jodta hai
+    defaultValues: editing || emptyStudent, // edit mode me purana data bhara hota hai
   });
 
   const [addStudent, { error: addError }] = useAddStudentMutation();
@@ -68,7 +41,7 @@ const StudentForm = ({ editing, onDone }) => {
       ? await updateStudent({ ...data, _id: editing._id })
       : await addStudent(data);
     if (!result.error) {
-      reset(empty);
+      reset(emptyStudent);
       onDone();
     }
   };
@@ -92,7 +65,7 @@ const StudentForm = ({ editing, onDone }) => {
           {isSubmitting ? "Saving..." : editing ? "Update" : "Add Student"}
         </button>
         {editing && (
-          <button type="button" onClick={() => { reset(empty); onDone(); }} className="rounded-lg bg-slate-200 px-5 py-2.5 font-medium text-slate-700 hover:bg-slate-300">
+          <button type="button" onClick={() => { reset(emptyStudent); onDone(); }} className="rounded-lg bg-slate-200 px-5 py-2.5 font-medium text-slate-700 hover:bg-slate-300">
             Cancel
           </button>
         )}

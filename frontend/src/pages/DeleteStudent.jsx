@@ -1,5 +1,5 @@
-import { useGetStudentsQuery, useDeleteStudentMutation } from "../services/studentApi";
-import StudentCard from "../components/StudentCard";
+import { useGetStudentsQuery, useDeleteStudentMutation } from "../features/students/studentApi";
+import StudentCard from "../features/students/StudentCard";
 import Message from "../components/Message";
 
 // PAGE 4: sirf DELETE API (useDeleteStudentMutation)

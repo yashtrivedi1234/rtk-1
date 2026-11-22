@@ -1,12 +1,12 @@
-import express from "express";
+import { Router } from "express";
 import {
   getStudents,
   createStudent,
   updateStudent,
   deleteStudent,
-} from "../controllers/studentController.js";
+} from "../controllers/student.controller.js";
 
-const router = express.Router();
+const router = Router();
 
 // URL -> Controller function ka mapping
 router.get("/", getStudents);

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import { useGetStudentsQuery } from "../services/studentApi";
-import StudentCard from "../components/StudentCard";
+import { useGetStudentsQuery } from "../features/students/studentApi";
+import StudentCard from "../features/students/StudentCard";
 import Message from "../components/Message";
 
 // PAGE 1: sirf GET API (useGetStudentsQuery)

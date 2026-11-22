@@ -1,13 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Provider } from "react-redux";
+import { BrowserRouter } from "react-router-dom";
 import { store } from "./app/store";
 import App from "./App";
 import "./index.css";
 
-// Provider se poori app ko Redux store mil jata hai
+// Provider = Redux store, BrowserRouter = routing. Dono poori app ko milte hain.
 ReactDOM.createRoot(document.getElementById("root")).render(
   <Provider store={store}>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </Provider>
 );
