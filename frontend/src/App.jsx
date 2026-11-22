@@ -5,7 +5,6 @@ import AddStudent from "./pages/AddStudent";
 import UpdateStudent from "./pages/UpdateStudent";
 import DeleteStudent from "./pages/DeleteStudent";
 
-// App.jsx me sirf routes: URL -> page
 const App = () => {
   return (
     <Routes>

@@ -8,7 +8,6 @@ import {
 
 const router = Router();
 
-// URL -> Controller function ka mapping
 router.get("/", getStudents);
 router.post("/", createStudent);
 router.put("/:id", updateStudent);

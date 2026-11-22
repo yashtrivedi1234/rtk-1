@@ -1,12 +1,10 @@
 import mongoose from "mongoose";
 
 // Regex frontend (yup) wale hi hain, taaki dono jagah same rule lage
-const nameRegex = /^[A-Za-z ]+$/; // sirf letters aur space
-const emailRegex = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/; // abc@xyz.com
-const courseRegex = /^[A-Za-z0-9 .+#-]+$/; // letters, numbers, space aur . + # -
+const nameRegex = /^[A-Za-z ]+$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+const courseRegex = /^[A-Za-z0-9 .+#-]+$/;
 
-// MODEL (M): database me data ka structure (schema)
-// match: [regex, "error message"]  -> galat data par ye message frontend ko milta hai
 const studentSchema = new mongoose.Schema(
   {
     name: {

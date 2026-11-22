@@ -1,5 +1,3 @@
-// Ek student ki card. Buttons ko children ke roop me bahar se milte hain,
-// isliye Get / Update / Delete teeno pages isi ko use karte hain.
 const StudentCard = ({ student, children }) => {
   return (
     <li className="flex items-center gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">

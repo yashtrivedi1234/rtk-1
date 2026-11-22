@@ -1,9 +1,8 @@
 import * as yup from "yup";
 
-// Validation ke saare rules (yup + regex) ek alag file me, taaki form ka code chhota rahe
-const nameRegex = /^[A-Za-z ]+$/; // sirf letters aur space
-const emailRegex = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/; // abc@xyz.com
-const courseRegex = /^[A-Za-z0-9 .+#-]+$/; // letters, numbers, space aur . + # -
+const nameRegex = /^[A-Za-z ]+$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+const courseRegex = /^[A-Za-z0-9 .+#-]+$/;
 
 export const studentSchema = yup.object({
   name: yup

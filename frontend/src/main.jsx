@@ -6,7 +6,6 @@ import { store } from "./app/store";
 import App from "./App";
 import "./index.css";
 
-// Provider = Redux store, BrowserRouter = routing. Dono poori app ko milte hain.
 ReactDOM.createRoot(document.getElementById("root")).render(
   <Provider store={store}>
     <BrowserRouter>

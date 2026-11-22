@@ -3,10 +3,9 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import {
   useAddStudentMutation,
   useUpdateStudentMutation,
-} from "./studentApi";
-import { studentSchema, emptyStudent } from "./studentSchema";
+} from "./student.api";
+import { studentSchema, emptyStudent } from "./student.schema";
 
-// Label + input + error message ek jagah
 const Field = ({ label, error, ...inputProps }) => (
   <div>
     <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
@@ -27,15 +26,14 @@ const StudentForm = ({ editing, onDone }) => {
     reset,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: yupResolver(studentSchema), // resolver yup ko react-hook-form se jodta hai
-    defaultValues: editing || emptyStudent, // edit mode me purana data bhara hota hai
+    resolver: yupResolver(studentSchema),
+    defaultValues: editing || emptyStudent,
   });
 
   const [addStudent, { error: addError }] = useAddStudentMutation();
   const [updateStudent, { error: updateError }] = useUpdateStudentMutation();
   const apiError = addError || updateError;
 
-  // handleSubmit tabhi chalta hai jab validation pass ho
   const onSubmit = async (data) => {
     const result = editing
       ? await updateStudent({ ...data, _id: editing._id })

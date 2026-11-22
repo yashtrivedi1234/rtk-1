@@ -1,11 +1,9 @@
 import { Link } from "react-router-dom";
-import { useGetStudentsQuery } from "../features/students/studentApi";
+import { useGetStudentsQuery } from "../features/students/student.api";
 import StudentCard from "../features/students/StudentCard";
 import Message from "../components/Message";
 
-// PAGE 1: sirf GET API (useGetStudentsQuery)
 const GetStudents = () => {
-  // RTK Query ye teeno khud deta hai: data, isLoading, error
   const { data: students = [], isLoading, error } = useGetStudentsQuery();
 
   if (isLoading) return <Message>Loading...</Message>;

@@ -46,8 +46,8 @@ RTK Query/
         │   └── DeleteStudent.jsx         DELETE -> student hatao
         ├── features/
         │   └── students/                 student se jude SAARE files ek folder me
-        │       ├── studentApi.js         RTK Query: backend ki saari API calls
-        │       ├── studentSchema.js      yup + regex validation rules
+        │       ├── student.api.js         RTK Query: backend ki saari API calls
+        │       ├── student.schema.js      yup + regex validation rules
         │       ├── StudentForm.jsx       Add/Update ka form (react-hook-form)
         │       └── StudentCard.jsx       ek student ki card
         └── components/
@@ -92,7 +92,7 @@ User form bharke "Add" dabata hai
 StudentForm.jsx       -> studentSchema (yup) pass hui, addStudent(data) call hua
         │
         ▼
-studentApi.js         -> POST http://localhost:5001/api/students  (RTK Query)
+student.api.js         -> POST http://localhost:5001/api/students  (RTK Query)
         │
         ▼
 app.js                -> cors + json middleware, "/api" ko routes/index.js ko diya
@@ -154,8 +154,8 @@ Error response hamesha aisa: `{ "message": "..." }` (400 galat data, 404 nahi mi
 |---|---|
 | `main.jsx` | React start, `<Provider store>` (Redux) aur `<BrowserRouter>` lagata hai |
 | `app/store.js` | Store banata hai, RTK Query ka reducer + middleware jodta hai |
-| `features/students/studentApi.js` | **Sabse important.** 4 endpoints likhe hain, hooks apne aap ban jate hain |
-| `features/students/studentSchema.js` | yup + regex rules |
+| `features/students/student.api.js` | **Sabse important.** 4 endpoints likhe hain, hooks apne aap ban jate hain |
+| `features/students/student.schema.js` | yup + regex rules |
 | `features/students/StudentForm.jsx` | Add/Update dono ka form (react-hook-form) |
 | `features/students/StudentCard.jsx` | ek student ki card |
 | `layouts/MainLayout.jsx` | heading + navbar, `<Outlet />` me page aata hai |
@@ -181,7 +181,7 @@ Isliye `useEffect` ya manual refresh nahi likhna padta.
 ### Form validation
 
 - **react-hook-form**: form ki values aur submit sambhalta hai (`register`, `handleSubmit`).
-- **yup + regex** (`studentSchema.js`): rules likhta hai (name sirf letters, email sahi format, course).
+- **yup + regex** (`student.schema.js`): rules likhta hai (name sirf letters, email sahi format, course).
 - **yupResolver**: dono ko jodta hai.
 
 ---
@@ -191,9 +191,9 @@ Isliye `useEffect` ya manual refresh nahi likhna padta.
 1. Folder structure dikhao (upar ka tree).
 2. Backend: `student.model.js` -> `student.controller.js` -> `student.routes.js` -> `app.js` -> `server.js`.
 3. Browser me `GET /api/students` kholke dikhao.
-4. Frontend: `studentApi.js` (saari API ek jagah).
+4. Frontend: `student.api.js` (saari API ek jagah).
 5. Pages ek-ek karke: Get -> Add -> Update -> Delete.
-6. Last me form validation (`studentSchema.js`) aur error middleware.
+6. Last me form validation (`student.schema.js`) aur error middleware.
 
 ---
 
@@ -234,7 +234,7 @@ Agar API ko **token** chahiye, wo bhi poochho (Step 2 me header me lagega).
 VITE_API_URL=https://fakestoreapi.com
 ```
 
-### Step 2: `features/products/productApi.js` banao (studentApi.js ki copy karo)
+### Step 2: `features/products/productApi.js` banao (student.api.js ki copy karo)
 ```js
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 

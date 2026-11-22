@@ -7,8 +7,6 @@ const links = [
   { to: "/delete", label: "Delete", method: "DELETE" },
 ];
 
-// Layout: har page ke upar jo cheez common hai (heading + navbar) wo yaha hai.
-// <Outlet /> ki jagah current page aa jata hai.
 const MainLayout = () => {
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-8">

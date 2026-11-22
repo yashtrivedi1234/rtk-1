@@ -2,10 +2,8 @@ import { useState } from "react";
 import StudentForm from "../features/students/StudentForm";
 import StudentCard from "../features/students/StudentCard";
 import Message from "../components/Message";
-import { useGetStudentsQuery } from "../features/students/studentApi";
+import { useGetStudentsQuery } from "../features/students/student.api";
 
-// PAGE 3: sirf PUT API (form ke andar useUpdateStudentMutation chalta hai)
-// Student chunne ke liye list dikhane ko GET hook bhi use hua hai
 const UpdateStudent = () => {
   const { data: students = [], isLoading, error } = useGetStudentsQuery();
   const [editing, setEditing] = useState(null);

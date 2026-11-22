@@ -1,15 +1,12 @@
-import { useGetStudentsQuery, useDeleteStudentMutation } from "../features/students/studentApi";
+import { useGetStudentsQuery, useDeleteStudentMutation } from "../features/students/student.api";
 import StudentCard from "../features/students/StudentCard";
 import Message from "../components/Message";
 
-// PAGE 4: sirf DELETE API (useDeleteStudentMutation)
-// Student dikhane ke liye GET hook bhi use hua hai
 const DeleteStudent = () => {
   const { data: students = [], isLoading, error } = useGetStudentsQuery();
   const [deleteStudent] = useDeleteStudentMutation();
 
   const handleDelete = (student) => {
-    // Galti se delete na ho, isliye pehle puchte hain
     if (window.confirm(`${student.name} ko delete karna hai?`)) deleteStudent(student._id);
   };
 
