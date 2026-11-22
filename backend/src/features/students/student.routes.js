@@ -4,13 +4,14 @@ import {
   createStudent,
   updateStudent,
   deleteStudent,
-} from "../controllers/student.controller.js";
+} from "./student.controller.js";
+import upload from "../../middlewares/upload.middleware.js";
 
 const router = Router();
 
 router.get("/", getStudents);
-router.post("/", createStudent);
-router.put("/:id", updateStudent);
+router.post("/", upload, createStudent);
+router.put("/:id", upload, updateStudent);
 router.delete("/:id", deleteStudent);
 
 export default router;

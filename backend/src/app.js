@@ -10,7 +10,7 @@ app.use(express.json());
 
 app.use("/api", routes);
 
-// Ye do hamesha sabse last me
+// These two must always be last
 app.use(notFound);
 app.use(errorHandler);
 

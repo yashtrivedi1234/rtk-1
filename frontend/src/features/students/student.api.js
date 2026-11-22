@@ -1,10 +1,6 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { api } from "../../app/api";
 
-export const studentApi = createApi({
-  reducerPath: "studentApi",
-  baseQuery: fetchBaseQuery({ baseUrl: import.meta.env.VITE_API_URL }),
-  tagTypes: ["Student"],
-
+export const studentApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getStudents: builder.query({
       query: () => "/students",
@@ -12,16 +8,12 @@ export const studentApi = createApi({
     }),
 
     addStudent: builder.mutation({
-      query: (student) => ({ url: "/students", method: "POST", body: student }),
-      invalidatesTags: ["Student"],
+      query: (formData) => ({ url: "/students", method: "POST", body: formData }),
+      invalidatesTags: ["Student"], // the list (and the dashboard) refetch automatically
     }),
 
     updateStudent: builder.mutation({
-      query: ({ _id, ...student }) => ({
-        url: `/students/${_id}`,
-        method: "PUT",
-        body: student,
-      }),
+      query: ({ _id, body }) => ({ url: `/students/${_id}`, method: "PUT", body }),
       invalidatesTags: ["Student"],
     }),
 

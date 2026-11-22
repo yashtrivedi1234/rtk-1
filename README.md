@@ -1,205 +1,160 @@
-# Student CRUD: MERN + RTK Query (MVC)
+# Student CRUD: MERN + RTK Query (feature-based)
 
-Ye project students ko sikhane ke liye hai. Ek student ka **name, email, course** save hota hai.
-CRUD = **C**reate, **R**ead, **U**pdate, **D**elete.
+A beginner-friendly full-stack project. A user registers (with a profile photo), logs in, lands on a
+dashboard and manages their own students (Create, Read, Update, Delete).
+
+**Stack:** Node + Express 5 (ES modules) + Mongoose, React (JavaScript) + Tailwind CSS + RTK Query,
+react-hook-form + Yup, React Toastify, Cloudinary (images), Nodemailer (emails), JWT (login).
 
 ---
 
-## 1. Poora folder structure
+## 1. Folder structure
+
+Both sides are **feature-based**: everything about one feature (auth, students, dashboard) lives together.
 
 ```
 RTK Query/
-│
-├── backend/                              <- SERVER (Node + Express + Mongoose)
-│   ├── .env                              secret cheezein (port, DB url, frontend url)
-│   ├── .env.example                      .env ka khali sample (git me jata hai)
+├── backend/
+│   ├── .env / .env.example
 │   └── src/
-│       ├── server.js                     START: DB connect + server listen
-│       ├── app.js                        Express app + middlewares (cors, json, errors)
-│       ├── config/
-│       │   └── db.js                     MongoDB se connect karta hai
-│       ├── models/
-│       │   └── student.model.js          MODEL: student ka structure + regex rules
-│       ├── controllers/
-│       │   └── student.controller.js     CONTROLLER: create/read/update/delete logic
-│       ├── routes/
-│       │   ├── index.js                  saare routes ek jagah (/api/...)
-│       │   └── student.routes.js         URL kis controller function ko chalayega
-│       └── middlewares/
-│           └── error.middleware.js       404 + saare errors ek jagah handle
+│       ├── server.js                 checks required env, connects services, starts the server
+│       ├── app.js                    Express app + middlewares
+│       ├── config/                   connections to external services
+│       │   ├── db.js                 MongoDB
+│       │   ├── cloudinary.js         Cloudinary setup + "connected / failed" message
+│       │   └── mailer.js             Nodemailer setup + "connected / failed" message
+│       ├── features/
+│       │   ├── auth/                 user.model, auth.controller, auth.routes, auth.middleware (protect), auth.mail
+│       │   ├── students/             student.model, student.controller, student.routes
+│       │   └── dashboard/            dashboard.controller, dashboard.routes
+│       ├── middlewares/              shared: error, upload (multer), rateLimit
+│       ├── routes/index.js           mounts every feature under /api
+│       └── utils/                    regex.js, image.js (upload/delete), sendEmail.js
 │
-└── frontend/                             <- WEBSITE (React + Tailwind + RTK Query)
-    ├── index.html
-    ├── .env / .env.example               backend ka URL (VITE_API_URL)
+└── frontend/
+    ├── .env / .env.example           VITE_API_URL
     └── src/
-        ├── main.jsx                      React start + Redux Provider + Router
-        ├── App.jsx                       sirf routes: URL -> page
-        ├── index.css                     Tailwind import
-        ├── app/
-        │   └── store.js                  Redux store (RTK Query yahi use karta hai)
-        ├── layouts/
-        │   └── MainLayout.jsx            heading + navbar (har page par common)
-        ├── pages/                        VIEW: har page = ek API
-        │   ├── GetStudents.jsx           GET    -> list dikhao
-        │   ├── AddStudent.jsx            POST   -> naya student
-        │   ├── UpdateStudent.jsx         PUT    -> student edit
-        │   └── DeleteStudent.jsx         DELETE -> student hatao
+        ├── main.jsx, App.jsx         providers, routes, <ToastContainer />
+        ├── app/                      api.js (one RTK Query slice), baseQuery.js (token + 401), store.js
+        ├── layouts/                  AuthLayout, DashboardLayout (+ Sidebar)
         ├── features/
-        │   └── students/                 student se jude SAARE files ek folder me
-        │       ├── student.api.js         RTK Query: backend ki saari API calls
-        │       ├── student.schema.js      yup + regex validation rules
-        │       ├── StudentForm.jsx       Add/Update ka form (react-hook-form)
-        │       └── StudentCard.jsx       ek student ki card
-        └── components/
-            └── Message.jsx               common: loading / error / khali message
+        │   ├── auth/                 authSlice, auth.api, auth.schema, components/, pages/ (Login, Register, ForgotPassword, ResetPassword)
+        │   ├── students/             student.api, student.schema, components/ (StudentForm, StudentCard), pages/ (Get, Add, Update, Delete)
+        │   └── dashboard/            dashboard.api, pages/Dashboard
+        ├── components/               shared UI: Field, ImageField, Button, Avatar, StatCard, Message, Skeleton, PageHeader
+        ├── hooks/                    useImagePreview
+        └── utils/                    regex.js, cloudinary.js (thumbnail URL), toast.js (error message helper)
 ```
 
-**Professional rules jo follow hue hain:**
-- **Backend:** saara code `src/` me. `app.js` (app banana) aur `server.js` (chalana) alag.
-  File ka naam `student.model.js`, `student.controller.js` jaisa (kaam + type).
-  Errors ek hi jagah (`error.middleware.js`), controller me try/catch nahi.
-- **Frontend:** student ka sab kuch `features/students/` me. Naya module (jaise products)
-  aaye to `features/products/` banao. `components/` me sirf wo cheez jo kisi bhi feature me chale.
-- **Backend validation aur frontend validation dono**: frontend user ko jaldi batata hai,
-  backend asli suraksha deta hai.
-
-**Yaad rakhne ka tarika:** backend me folder ka naam = uska kaam
-(`models` = data, `controllers` = logic, `routes` = rasta, `middlewares` = beech ka pehredar).
-Frontend me `pages` = screen, `features` = ek module ka poora kaam, `layouts` = common dhancha.
+**Rule of thumb:** a file used by one feature stays inside that feature folder. Only things shared
+by many features go to `components/`, `utils/`, `hooks/` (frontend) or `middlewares/`, `utils/` (backend).
 
 ---
 
-## 2. MVC kya hai (students ko aise samjhao)
-
-Restaurant ka example:
-
-| MVC | Restaurant | Is project me |
-|---|---|---|
-| **Model** | Kitchen ka recipe/stock | `student.model.js` (data kaisa dikhega) |
-| **View** | Customer ko dikhne wala menu | React `pages` + `features` |
-| **Controller** | Waiter jo order lekar kitchen se kaam karwata hai | `student.controller.js` |
-| **Routes** | Batata hai kaunsa order kis counter par jayega | `student.routes.js` |
-| **Middleware** | Gate ka guard, har order check karta hai | `error.middleware.js`, cors |
-
----
-
-## 3. Ek request ka poora safar (Add Student ka example)
+## 2. How a request travels (Add student)
 
 ```
-User form bharke "Add" dabata hai
-        │
-        ▼
-StudentForm.jsx       -> studentSchema (yup) pass hui, addStudent(data) call hua
-        │
-        ▼
-student.api.js         -> POST http://localhost:5001/api/students  (RTK Query)
-        │
-        ▼
-app.js                -> cors + json middleware, "/api" ko routes/index.js ko diya
-        │
-        ▼
-routes/index.js       -> "/students" ko student.routes.js ko diya
-        │
-        ▼
-student.routes.js     -> POST "/" -> createStudent
-        │
-        ▼
-student.controller.js -> Student.create(...)
-        │
-        ▼
-student.model.js      -> regex check, phir MongoDB me save
-        │
-        ▼
-Response wapas aaya -> RTK Query list refresh karta hai -> UI update
-(kahin error aaya to error.middleware.js { message } bhejta hai -> form me dikhta hai)
+StudentForm.jsx         Yup validation passes, addStudent(formData) is called
+student.api.js          POST /api/students   (RTK Query adds the Authorization header)
+app.js                  cors + json, then routes/index.js
+routes/index.js         /students -> protect (checks the token) -> student.routes.js
+student.controller.js   validates, uploads the photo to Cloudinary, saves
+student.model.js        regex rules + MongoDB
+Response                RTK Query refetches the list and dashboard (tags) and a toast is shown
 ```
 
-Board par bas ye ek line likh do:
-**Page -> RTK Query hook -> Route -> Controller -> Model -> MongoDB**
+MVC mapping: **Model** = `*.model.js`, **View** = React pages/components, **Controller** = `*.controller.js`.
 
 ---
 
-## 4. Backend file by file
+## 3. Backend config and startup messages
 
-| File | Kya karti hai | Samjhane ki line |
+`server.js` runs in this order and prints what happened (each config file checks its own env variables):
+
+| Step | Success | Problem |
 |---|---|---|
-| `src/server.js` | `.env` load, DB connect, server start | "Gaadi ki chaabi" |
-| `src/app.js` | Express app, cors, json, routes, error middleware | "Building ka main gate" |
-| `src/config/db.js` | `mongoose.connect(MONGO_URI)` | "Database ka phone number lagana" |
-| `src/models/student.model.js` | Schema: name, email, course + regex | "Form ka format, DB wahi sweekar karega" |
-| `src/controllers/student.controller.js` | `getStudents`, `createStudent`, `updateStudent`, `deleteStudent` | "Asli kaam yaha hota hai" |
-| `src/routes/student.routes.js` | `get / post / put /:id / delete /:id` | "URL aur function ki jodi" |
-| `src/routes/index.js` | sab routes ko `/api` ke neeche jodta hai | "Index page: kaunsa module kahan" |
-| `src/middlewares/error.middleware.js` | 404, validation, duplicate email, galat id | "Har galti ka ek hi jawab format" |
-| `.env` | `PORT`, `MONGO_URI`, `CLIENT_URL` | "Secret aur settings, code me nahi likhte" |
+| Required env (`MONGO_URI`, `JWT_SECRET`, `CLIENT_URL`) | continues | `Missing required environment variables: ...` and the server stops |
+| MongoDB | `MongoDB connected` | `MongoDB connection failed: ...` and the server stops |
+| Cloudinary | `Cloudinary connected` | `Cloudinary not configured. Missing env: ...` or `Cloudinary connection failed: ...` |
+| Mailer | `Mailer connected` | `Mailer not configured. Missing env: ...` or `Mailer connection failed: ...` |
 
-### API table
-
-| Method | URL | Kaam |
-|---|---|---|
-| GET | `/api/students` | sab students |
-| POST | `/api/students` | naya student |
-| PUT | `/api/students/:id` | update |
-| DELETE | `/api/students/:id` | delete |
-
-Error response hamesha aisa: `{ "message": "..." }` (400 galat data, 404 nahi mila, 409 email repeat).
-
-> `CLIENT_URL` = jis frontend ko backend se baat karne ki ijazat hai (CORS).
+Cloudinary and the mailer are optional at startup so you can still develop. Without Cloudinary, uploads
+return a clear 503 error. Without SMTP, emails are printed in the terminal (development only).
 
 ---
 
-## 5. Frontend file by file
+## 4. Environment variables
 
-| File | Kya karti hai |
+Copy `backend/.env.example` to `backend/.env` and fill it in. Never commit `.env`.
+
+| Variable | Purpose |
 |---|---|
-| `main.jsx` | React start, `<Provider store>` (Redux) aur `<BrowserRouter>` lagata hai |
-| `app/store.js` | Store banata hai, RTK Query ka reducer + middleware jodta hai |
-| `features/students/student.api.js` | **Sabse important.** 4 endpoints likhe hain, hooks apne aap ban jate hain |
-| `features/students/student.schema.js` | yup + regex rules |
-| `features/students/StudentForm.jsx` | Add/Update dono ka form (react-hook-form) |
-| `features/students/StudentCard.jsx` | ek student ki card |
-| `layouts/MainLayout.jsx` | heading + navbar, `<Outlet />` me page aata hai |
-| `App.jsx` | `Routes`: URL ke hisaab se page |
-| `pages/*.jsx` | Har page ek hook use karta hai |
-| `components/Message.jsx` | loading / error / khali message |
+| `PORT` | server port (`5001`; on macOS port 5000 is used by AirPlay) |
+| `MONGO_URI` | MongoDB connection string |
+| `CLIENT_URL` | frontend URL, allowed by CORS and used in reset links |
+| `CLOUDINARY_*` | cloud name, API key, API secret |
+| `JWT_SECRET`, `JWT_EXPIRES_IN` | login token |
+| `SMTP_*`, `EMAIL_FROM` | emails. For Gmail: enable 2-step verification, create an App Password, use `smtp.gmail.com` and port `587` |
 
-### RTK Query ke 4 hooks (4 pages se jude)
+Frontend: `frontend/.env` has `VITE_API_URL=http://localhost:5001/api`.
 
-| Page | Hook | Type |
+---
+
+## 5. Features
+
+**Auth flow:** Register (photo is required, goes to Cloudinary) -> welcome email -> Log in (JWT) -> Dashboard.
+
+- Passwords are hashed with bcrypt. Rule: at least 8 characters with a letter and a number.
+- Forgot password: a link valid for 15 minutes is emailed. Only the hash of the token is stored. The response is always the same, so nobody can find out which emails are registered.
+- `protect` middleware guards `/api/students` and `/api/dashboard`.
+- Every student belongs to a user, so users only see and change their own students.
+- Login and forgot-password are rate limited.
+- On the frontend, `ProtectedRoute` redirects to `/login`, an expired token logs the user out, and logout clears all cached data.
+
+**Images:** never stored on disk. `multer` keeps the file in memory (max 2MB, images only) and
+it is streamed to Cloudinary. The database keeps only `{ url, publicId }`. Replacing or deleting
+a student (or failing a save) also deletes the old image from Cloudinary.
+
+**Toasts:** `react-toastify` shows success and error messages for every action (login, register,
+forgot / reset password, add / update / delete student, logout, expired session).
+
+**Dashboard:** sidebar layout (slide-in menu on mobile), stats, recently added students and
+students by course.
+
+### API
+
+| Method | URL | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/auth/register` | no | create user (form-data: name, email, password, image) |
+| POST | `/api/auth/login` | no | returns `token` and `user` |
+| POST | `/api/auth/forgot-password` | no | email a reset link |
+| POST | `/api/auth/reset-password/:token` | no | set a new password |
+| GET | `/api/dashboard` | yes | dashboard summary |
+| GET | `/api/students` | yes | list students |
+| POST | `/api/students` | yes | add a student |
+| PUT | `/api/students/:id` | yes | update a student |
+| DELETE | `/api/students/:id` | yes | delete a student |
+
+Errors always look like `{ "message": "..." }` (400 invalid data, 401 not logged in, 404 not found, 409 duplicate, 503 service unavailable).
+
+---
+
+## 6. RTK Query in this project
+
+One shared API slice (`app/api.js`). Each feature adds endpoints with `api.injectEndpoints`:
+
+| Page / feature | Hook | Type |
 |---|---|---|
-| GetStudents | `useGetStudentsQuery()` | query (data lana) |
-| AddStudent | `useAddStudentMutation()` | mutation (data badalna) |
-| UpdateStudent | `useUpdateStudentMutation()` | mutation |
-| DeleteStudent | `useDeleteStudentMutation()` | mutation |
+| Student list, Dashboard | `useGetStudentsQuery`, `useGetDashboardQuery` | query (read data) |
+| Add / Update / Delete student | `useAddStudentMutation`, `useUpdateStudentMutation`, `useDeleteStudentMutation` | mutation (change data) |
+| Auth pages | `useLoginMutation`, `useRegisterMutation`, `useForgotPasswordMutation`, `useResetPasswordMutation` | mutation |
 
-**Query vs Mutation:** data **padhna** = query, data **badalna** (add/edit/delete) = mutation.
-
-**Tags ka magic:** `getStudents` ke paas `providesTags: ["Student"]` hai, aur baaki teeno ke paas
-`invalidatesTags: ["Student"]`. Matlab add/edit/delete hone par list **apne aap dobara fetch** hoti hai.
-Isliye `useEffect` ya manual refresh nahi likhna padta.
-
-### Form validation
-
-- **react-hook-form**: form ki values aur submit sambhalta hai (`register`, `handleSubmit`).
-- **yup + regex** (`student.schema.js`): rules likhta hai (name sirf letters, email sahi format, course).
-- **yupResolver**: dono ko jodta hai.
+`getStudents` and `getDashboard` use `providesTags: ["Student"]`; add / update / delete use
+`invalidatesTags: ["Student"]`, so both refetch by themselves. No `useEffect` needed.
 
 ---
 
-## 6. Sikhane ka sahi order (suggestion)
-
-1. Folder structure dikhao (upar ka tree).
-2. Backend: `student.model.js` -> `student.controller.js` -> `student.routes.js` -> `app.js` -> `server.js`.
-3. Browser me `GET /api/students` kholke dikhao.
-4. Frontend: `student.api.js` (saari API ek jagah).
-5. Pages ek-ek karke: Get -> Add -> Update -> Delete.
-6. Last me form validation (`student.schema.js`) aur error middleware.
-
----
-
-## 7. Run kaise kare
-
-MongoDB (local ya Atlas) ka URL `backend/.env` me `MONGO_URI` me daalo.
+## 7. Run the project
 
 ```bash
 cd backend && npm install && npm run dev
@@ -210,80 +165,50 @@ cd frontend && npm install && npm run dev
 ```
 
 - Frontend: http://localhost:5173
-- Backend: http://localhost:5001 (macOS par 5000 AirPlay use karta hai, isliye 5001)
+- Backend: http://localhost:5001
 
-`.env` badalne ke baad server dobara start karna padta hai.
+Restart the servers after changing a `.env` file.
 
 ---
 
-## 8. Koi bhi nayi API kaise integrate kare (5 steps)
+## 8. Suggested teaching order
 
-Example: koi tumhe ye API de: `GET https://fakestoreapi.com/products`
+1. Folder structure (section 1) and the request journey (section 2).
+2. Backend: `config/` -> `student.model.js` -> `student.controller.js` -> `student.routes.js` -> `routes/index.js` -> `app.js` -> `server.js`.
+3. Auth: `user.model.js` -> `auth.controller.js` -> `auth.middleware.js`.
+4. Frontend: `app/api.js` and `student.api.js` -> store -> pages one by one (Get, Add, Update, Delete).
+5. Forms (react-hook-form + Yup), toasts, then the dashboard layout.
 
-### Step 0: API ko pehle samjho
-Browser ya Postman me kholke 4 cheezein dekho:
-1. **URL** (base URL + endpoint): `https://fakestoreapi.com` + `/products`
-2. **Method**: GET / POST / PUT / DELETE
-3. **Body** (POST/PUT me kya bhejna hai) ya **params**
-4. **Response** kaisa aata hai (array hai ya object, fields ke naam)
+---
 
-Agar API ko **token** chahiye, wo bhi poochho (Step 2 me header me lagega).
+## 9. Integrating a new API (5 steps)
 
-### Step 1: Base URL `.env` me daalo
-```
-VITE_API_URL=https://fakestoreapi.com
-```
+Example: `GET https://fakestoreapi.com/products`
 
-### Step 2: `features/products/productApi.js` banao (student.api.js ki copy karo)
-```js
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+1. **Understand the API:** URL, method, request body, response shape, and whether it needs a token.
+2. **Add the base URL** to `.env` if it is a different server.
+3. **Create `features/products/product.api.js`:**
+   ```js
+   import { api } from "../../app/api";
 
-export const productApi = createApi({
-  reducerPath: "productApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL,
-    // token wali API ho to:
-    // prepareHeaders: (headers) => { headers.set("Authorization", `Bearer ${token}`); return headers; },
-  }),
-  tagTypes: ["Product"],
-  endpoints: (builder) => ({
-    getProducts: builder.query({
-      query: () => "/products",            // GET
-      providesTags: ["Product"],
-    }),
-    addProduct: builder.mutation({
-      query: (body) => ({ url: "/products", method: "POST", body }),
-      invalidatesTags: ["Product"],
-    }),
-  }),
-});
+   export const productApi = api.injectEndpoints({
+     endpoints: (builder) => ({
+       getProducts: builder.query({ query: () => "/products" }),
+       addProduct: builder.mutation({
+         query: (body) => ({ url: "/products", method: "POST", body }),
+       }),
+     }),
+   });
 
-export const { useGetProductsQuery, useAddProductMutation } = productApi;
-```
-**Rule:** GET = `builder.query`, baaki sab (POST/PUT/DELETE) = `builder.mutation`.
-Hook ka naam: `use` + endpoint ka naam + `Query` ya `Mutation`.
+   export const { useGetProductsQuery, useAddProductMutation } = productApi;
+   ```
+   GET = `builder.query`, everything else = `builder.mutation`. Hook name = `use` + endpoint name + `Query` or `Mutation`.
+   (No store change is needed, because `injectEndpoints` reuses the shared slice.)
+4. **Use the hook in a page** (`features/products/pages/Products.jsx`):
+   ```jsx
+   const { data = [], isLoading, error } = useGetProductsQuery();
+   ```
+   For a mutation: `await addProduct(data).unwrap()` inside try/catch, then `toast.success(...)` or `toast.error(getErrorMessage(error))`.
+5. **Add the route** in `App.jsx` and a link in `layouts/Sidebar.jsx`.
 
-### Step 3: `app/store.js` me register karo (2 jagah)
-```js
-reducer: { ..., [productApi.reducerPath]: productApi.reducer },
-middleware: (getDefault) => getDefault().concat(..., productApi.middleware),
-```
-
-### Step 4: Page me hook use karo
-```jsx
-const Products = () => {
-  const { data = [], isLoading, error } = useGetProductsQuery();
-  if (isLoading) return <Message>Loading...</Message>;
-  if (error) return <Message error>Error aaya</Message>;
-  return data.map((p) => <p key={p.id}>{p.title}</p>);
-};
-export default Products;
-```
-Mutation ke liye: `const [addProduct, { isLoading }] = useAddProductMutation();` phir `addProduct(data)` call karo.
-
-### Step 5: Route + navbar link
-`App.jsx` me `<Route path="/products" element={<Products />} />` aur `layouts/MainLayout.jsx` ke `links` array me ek entry.
-
-### Yaad rakhne ki checklist
-`.env` -> `features/xxx/xxxApi.js` -> `store.js` -> page me hook -> route.
-Error aaye to: Network tab dekho, URL/method/body sahi hai? CORS error ho to backend ka `CLIENT_URL` check karo.
+If something fails, open the browser Network tab and check the URL, method and body. A CORS error means the backend `CLIENT_URL` is wrong.
