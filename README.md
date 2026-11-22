@@ -124,6 +124,12 @@ Frontend: `frontend/.env` has `VITE_API_URL=http://localhost:5001/api`.
 - Login and forgot-password are rate limited.
 - On the frontend, `ProtectedRoute` redirects to `/login`, an expired token logs the user out, and logout clears all cached data.
 
+**Image rules (profile photo and student photo):** square (1:1, 2% tolerance), at least 200×200 px, JPG / PNG / WebP, max 2MB.
+Checked twice: in the browser (`frontend/src/utils/imageSchema.js`, Yup, shows the real size in the error) and on the
+server (`upload.middleware.js`, reads the real dimensions from the file with `image-size`, so a renamed or fake file cannot pass).
+Change the numbers in both files together.
+After choosing a photo the user can discard it with the small cross on the image (`ImageField.jsx`); the file input is cleared too, so the same file can be chosen again.
+
 **Images:** never stored on disk. `multer` keeps the file in memory (max 2MB, images only) and
 it is streamed to Cloudinary. The database keeps only `{ url, publicId }`. Replacing or deleting
 a student (or failing a save) also deletes the old image from Cloudinary.

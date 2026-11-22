@@ -1,5 +1,6 @@
 import * as yup from "yup";
 import { nameRegex, emailRegex, passwordRegex } from "../../utils/regex";
+import { imageSchema } from "../../utils/imageSchema";
 
 const email = yup
   .string()
@@ -27,11 +28,7 @@ export const registerSchema = yup.object({
   email,
   password,
   confirmPassword,
-  image: yup
-    .mixed()
-    .test("required", "Profile photo is required", (files) => files?.length > 0)
-    .test("type", "Please choose an image file", (files) => !files?.[0] || files[0].type.startsWith("image/"))
-    .test("size", "Image must be smaller than 2MB", (files) => !files?.[0] || files[0].size <= 2 * 1024 * 1024),
+  image: imageSchema("Profile photo is required"),
 });
 
 export const loginSchema = yup.object({

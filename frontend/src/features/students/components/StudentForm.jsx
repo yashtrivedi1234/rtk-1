@@ -15,6 +15,8 @@ const StudentForm = ({ editing, onDone }) => {
     handleSubmit,
     reset,
     watch,
+    setValue,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: yupResolver(studentSchema),
@@ -23,7 +25,14 @@ const StudentForm = ({ editing, onDone }) => {
       : emptyStudent,
   });
 
-  const preview = useImagePreview(watch("image"), editing?.image?.url);
+  const image = watch("image");
+  const preview = useImagePreview(image, editing?.image?.url);
+
+  // Removes only the newly chosen file (a saved photo is shown again when editing)
+  const removeImage = () => {
+    setValue("image", null); // also empties the file input
+    clearErrors("image");
+  };
   const [addStudent] = useAddStudentMutation();
   const [updateStudent] = useUpdateStudentMutation();
   const HeaderIcon = editing ? PencilSquareIcon : UserPlusIcon;
@@ -60,7 +69,7 @@ const StudentForm = ({ editing, onDone }) => {
       <Field label="Name" placeholder="Rahul Sharma" error={errors.name} {...register("name")} />
       <Field label="Email" placeholder="rahul@example.com" error={errors.email} {...register("email")} />
       <Field label="Course" placeholder="MERN Stack" error={errors.course} {...register("course")} />
-      <ImageField label="Photo (optional)" preview={preview} error={errors.image} {...register("image")} />
+      <ImageField label="Photo (optional)" preview={preview} hasFile={image?.length > 0} onRemove={removeImage} error={errors.image} {...register("image")} />
 
       <div className="flex gap-3">
         <button

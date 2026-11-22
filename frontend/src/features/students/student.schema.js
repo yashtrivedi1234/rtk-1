@@ -1,5 +1,6 @@
 import * as yup from "yup";
 import { nameRegex, emailRegex, courseRegex } from "../../utils/regex";
+import { imageSchema } from "../../utils/imageSchema";
 
 export const studentSchema = yup.object({
   name: yup
@@ -18,10 +19,7 @@ export const studentSchema = yup.object({
     .trim()
     .required("Course is required")
     .matches(courseRegex, "Course cannot contain special characters"),
-  image: yup
-    .mixed()
-    .test("type", "Please choose an image file", (files) => !files?.[0] || files[0].type.startsWith("image/"))
-    .test("size", "Image must be smaller than 2MB", (files) => !files?.[0] || files[0].size <= 2 * 1024 * 1024),
+  image: imageSchema(),
 });
 
 export const emptyStudent = { name: "", email: "", course: "" };

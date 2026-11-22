@@ -13,9 +13,15 @@ import Button from "../../../components/Button";
 
 // Step 1 of registration: collect the details and email a verification code
 const RegisterForm = ({ onCodeSent }) => {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({ resolver: yupResolver(registerSchema) });
+  const { register, handleSubmit, watch, setValue, clearErrors, formState: { errors } } = useForm({ resolver: yupResolver(registerSchema) });
   const [registerUser, { isLoading }] = useRegisterMutation();
-  const preview = useImagePreview(watch("image"));
+  const image = watch("image");
+  const preview = useImagePreview(image);
+
+  const removeImage = () => {
+    setValue("image", null); // also empties the file input
+    clearErrors("image");
+  };
 
   const onSubmit = async ({ name, email, password, image }) => {
     try {
@@ -39,7 +45,7 @@ const RegisterForm = ({ onCodeSent }) => {
         <Field label="Email" type="email" autoComplete="email" placeholder="rahul@example.com" error={errors.email} {...register("email")} />
         <Field label="Password" type="password" autoComplete="new-password" placeholder="At least 8 characters" error={errors.password} {...register("password")} />
         <Field label="Confirm password" type="password" autoComplete="new-password" placeholder="Re-enter your password" error={errors.confirmPassword} {...register("confirmPassword")} />
-        <ImageField label="Profile photo" preview={preview} error={errors.image} {...register("image")} />
+        <ImageField label="Profile photo" preview={preview} hasFile={image?.length > 0} onRemove={removeImage} error={errors.image} {...register("image")} />
         <Button loading={isLoading} loadingText="Sending code...">Send verification code</Button>
       </form>
     </AuthCard>
