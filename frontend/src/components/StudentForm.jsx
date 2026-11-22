@@ -7,10 +7,28 @@ import {
 } from "../services/studentApi";
 
 // Yup schema: validation ke saare rules yaha likhte hain
+// Regex (pattern) ek jagah, taaki samjhana easy ho
+const nameRegex = /^[A-Za-z ]+$/; // sirf letters aur space
+const emailRegex = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/; // abc@xyz.com
+const courseRegex = /^[A-Za-z0-9 .+#-]+$/; // letters, numbers, space aur . + # -
+
 const schema = yup.object({
-  name: yup.string().trim().min(2, "Name kam se kam 2 letters ka ho").required("Name zaroori hai"),
-  email: yup.string().trim().email("Sahi email daalo").required("Email zaroori hai"),
-  course: yup.string().trim().required("Course zaroori hai"),
+  name: yup
+    .string()
+    .trim()
+    .required("Name zaroori hai")
+    .min(2, "Name kam se kam 2 letters ka ho")
+    .matches(nameRegex, "Name me sirf letters allowed hain"),
+  email: yup
+    .string()
+    .trim()
+    .required("Email zaroori hai")
+    .matches(emailRegex, "Sahi email daalo (jaise abc@gmail.com)"),
+  course: yup
+    .string()
+    .trim()
+    .required("Course zaroori hai")
+    .matches(courseRegex, "Course me special characters allowed nahi hain"),
 });
 
 const empty = { name: "", email: "", course: "" };
