@@ -42,3 +42,11 @@ export const loginSchema = yup.object({
 export const forgotPasswordSchema = yup.object({ email });
 
 export const resetPasswordSchema = yup.object({ password, confirmPassword });
+
+export const otpSchema = yup.object({
+  otp: yup
+    .string()
+    .trim()
+    .required("Enter the 6-digit code")
+    .matches(/^\d{6}$/, "The code must be 6 digits"),
+});

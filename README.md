@@ -24,7 +24,7 @@ RTK Query/
 │       │   ├── cloudinary.js         Cloudinary setup + "connected / failed" message
 │       │   └── mailer.js             Nodemailer setup + "connected / failed" message
 │       ├── features/
-│       │   ├── auth/                 user.model, auth.controller, auth.routes, auth.middleware (protect)
+│       │   ├── auth/                 user.model, pending-user.model, auth.controller, auth.routes, auth.middleware (protect)
 │       │   ├── students/             student.model, student.controller, student.routes
 │       │   └── dashboard/            dashboard.controller, dashboard.routes
 │       ├── services/                 email.service.js (send with Nodemailer), email.templates.js (welcome / reset emails)
@@ -80,7 +80,7 @@ MVC mapping: **Model** = `*.model.js`, **View** = React pages/components, **Cont
 | Cloudinary | `Cloudinary connected` | `Cloudinary not configured. Missing env: ...` or `Cloudinary connection failed: ...` |
 | Mailer | `Mailer connected` | `Mailer not configured. Missing env: ...` or `Mailer connection failed: ...` |
 
-Cloudinary and the mailer are optional at startup so you can still develop. Without Cloudinary, uploads
+Cloudinary and the mailer are optional at startup so you can still develop (but registration needs both). Without Cloudinary, uploads
 return a clear 503 error. Without SMTP, emails are not sent: the welcome email is skipped (and logged as an error),
 and forgot password returns an error.
 
@@ -105,7 +105,17 @@ Frontend: `frontend/.env` has `VITE_API_URL=http://localhost:5001/api`.
 
 ## 5. Features
 
-**Auth flow:** Register (photo is required, goes to Cloudinary) -> welcome email -> Log in (JWT) -> Dashboard.
+**Auth flow:** Register in 2 steps -> welcome email -> Log in (JWT) -> Dashboard.
+
+**Registration with email verification (2 steps):** the account is created only after the email is verified.
+
+1. `POST /api/auth/register` (name, email, password): validates the data, stores a *pending* registration (password already hashed) and emails a 6-digit code. No user exists yet.
+2. `POST /api/auth/verify-email` (email, code, profile photo): if the code is right, the photo is uploaded to Cloudinary and the user is created. The photo is uploaded here, so unverified sign-ups never touch Cloudinary.
+
+- The code is valid for 10 minutes, only its hash is stored, and 5 wrong tries cancel the registration.
+- A new code can be requested once a minute (`POST /api/auth/resend-otp`).
+- Unverified registrations delete themselves (MongoDB TTL index on `pending-user.model.js`).
+- This flow needs the mailer: without SMTP, registration returns an error.
 
 - Passwords are hashed with bcrypt. Rule: at least 8 characters with a letter and a number.
 - Forgot password: a link valid for 15 minutes is emailed. Only the hash of the token is stored. The response is always the same, so nobody can find out which emails are registered.
@@ -128,7 +138,9 @@ students by course.
 
 | Method | URL | Auth | Purpose |
 |---|---|---|---|
-| POST | `/api/auth/register` | no | create user (form-data: name, email, password, image) |
+| POST | `/api/auth/register` | no | step 1: email a 6-digit code (name, email, password) |
+| POST | `/api/auth/verify-email` | no | step 2: verify the code and create the user (form-data: email, otp, image) |
+| POST | `/api/auth/resend-otp` | no | send a new code (email) |
 | POST | `/api/auth/login` | no | returns `token` and `user` |
 | POST | `/api/auth/forgot-password` | no | email a reset link |
 | POST | `/api/auth/reset-password/:token` | no | set a new password |

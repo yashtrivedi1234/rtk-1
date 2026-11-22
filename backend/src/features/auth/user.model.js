@@ -48,7 +48,8 @@ const userSchema = new mongoose.Schema(
 
 // Validation (regex) runs on the plain password first, then it is hashed
 userSchema.pre("save", async function () {
-  if (this.isModified("password")) this.password = await bcrypt.hash(this.password, 10);
+  const alreadyHashed = this.$locals.passwordHashed; // set when the password was hashed in registration step 1
+  if (this.isModified("password") && !alreadyHashed) this.password = await bcrypt.hash(this.password, 10);
 });
 
 userSchema.methods.matchPassword = function (plainPassword) {
