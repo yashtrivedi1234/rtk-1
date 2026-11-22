@@ -1,29 +1,12 @@
 import mongoose from "mongoose";
-import { nameRegex, emailRegex, courseRegex } from "../../utils/regex.js";
 
 const studentSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    name: {
-      type: String,
-      required: [true, "Name is required"],
-      trim: true,
-      minlength: [2, "Name must be at least 2 letters"],
-      match: [nameRegex, "Name can contain letters only"],
-    },
-    email: {
-      type: String,
-      required: [true, "Email is required"],
-      trim: true,
-      lowercase: true,
-      match: [emailRegex, "Enter a valid email (e.g. abc@gmail.com)"],
-    },
-    course: {
-      type: String,
-      required: [true, "Course is required"],
-      trim: true,
-      match: [courseRegex, "Course cannot contain special characters"],
-    },
+    // Input rules live in Yup (student.validation.js). The schema only describes how data is stored.
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, trim: true, lowercase: true },
+    course: { type: String, required: true, trim: true },
     image: {
       url: String,
       publicId: String,

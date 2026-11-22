@@ -24,13 +24,13 @@ RTK Query/
 │       │   ├── cloudinary.js         Cloudinary setup + "connected / failed" message
 │       │   └── mailer.js             Nodemailer setup + "connected / failed" message
 │       ├── features/
-│       │   ├── auth/                 user.model, pending-user.model, auth.controller, auth.routes, auth.middleware (protect)
-│       │   ├── students/             student.model, student.controller, student.routes
+│       │   ├── auth/                 user.model, pending-user.model, auth.validation (Yup), auth.controller, auth.routes, auth.middleware (protect)
+│       │   ├── students/             student.model, student.validation (Yup), student.controller, student.routes
 │       │   └── dashboard/            dashboard.controller, dashboard.routes
 │       ├── services/                 email.service.js (send with Nodemailer), email.templates.js (welcome / reset emails)
-│       ├── middlewares/              shared: error, upload (multer), rateLimit
+│       ├── middlewares/              shared: validate (Yup), error, upload (multer), rateLimit
 │       ├── routes/index.js           mounts every feature under /api
-│       └── utils/                    regex.js, random.js (code / token from bcryptjs), image.js (upload / delete on Cloudinary)
+│       └── utils/                    regex.js, imageSchema.js (Yup image rules), random.js (code / token from bcryptjs), image.js (upload / delete on Cloudinary)
 │
 └── frontend/
     ├── .env / .env.example           VITE_API_URL
@@ -126,10 +126,18 @@ Frontend: `frontend/.env` has `VITE_API_URL=http://localhost:5001/api`.
 - On the frontend, `ProtectedRoute` redirects to `/login`, an expired token logs the user out, and logout clears all cached data.
 
 **Image rules (profile photo and student photo):** square (1:1, 2% tolerance), at least 200×200 px, JPG / PNG / WebP, max 2MB.
-Checked twice: in the browser (`frontend/src/utils/imageSchema.js`, Yup, shows the real size in the error) and on the
-server (`upload.middleware.js`, reads the real dimensions from the file with `image-size`, so a renamed or fake file cannot pass).
+Checked twice, both times with Yup: in the browser (`frontend/src/utils/imageSchema.js`, shows the real size in the error) and on the
+server (`backend/src/utils/imageSchema.js`, reads the real dimensions from the file with `image-size`, so a renamed or fake file cannot pass).
 Change the numbers in both files together.
 After choosing a photo the user can discard it with the small cross on the image (`ImageField.jsx`); the file input is cleared too, so the same file can be chosen again.
+
+**Validation: Yup everywhere.** All input rules are written once per side as Yup schemas, nowhere else:
+
+- Frontend: `*.schema.js` files + `yupResolver` in react-hook-form (messages appear under the fields).
+- Backend: `*.validation.js` files + the `validate(schema)` / `validateParams(schema)` middlewares in the route, before the controller runs.
+  The middleware also cleans the data (trim, lowercase, unknown fields removed) and answers 400 `{ message }` with every problem.
+- Mongoose schemas only describe how data is stored (types, `required`, `unique`), they hold no input rules.
+- The frontend check is for a fast, friendly UI; the backend check is the real protection.
 
 **Images:** never stored on disk. `multer` keeps the file in memory (max 2MB, images only) and
 it is streamed to Cloudinary. The database keeps only `{ url, publicId }`. Replacing or deleting

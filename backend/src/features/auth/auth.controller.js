@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 import User from "./user.model.js";
 import PendingUser from "./pending-user.model.js";
 import { uploadImage, deleteImage } from "../../utils/image.js";
@@ -14,8 +13,6 @@ const signToken = (id) =>
 const OTP_TTL_MS = 10 * 60 * 1000; // a code is valid for 10 minutes
 const RESEND_WAIT_MS = 60 * 1000; // a new code can be requested once a minute
 const MAX_ATTEMPTS = 5; // wrong codes allowed before the registration is cancelled
-
-const normalizeEmail = (email) => String(email || "").toLowerCase().trim();
 
 const assertCanSendNewCode = (pending, res) => {
   const secondsLeft = Math.ceil((pending.otpSentAt.getTime() + RESEND_WAIT_MS - Date.now()) / 1000);
@@ -39,22 +36,20 @@ const emailCode = async (pending, otp, res) => {
 // Nothing is created yet. We store a pending registration and email a 6-digit code.
 export const register = async (req, res) => {
   const { name, email, password } = req.body;
-  const candidate = new User({ name, email, password });
-  await candidate.validate();
 
-  if (await User.exists({ email: candidate.email })) {
+  if (await User.exists({ email })) {
     res.status(409);
     throw new Error("Email already exists");
   }
 
-  const existing = await PendingUser.findOne({ email: candidate.email });
+  const existing = await PendingUser.findOne({ email });
   if (existing) assertCanSendNewCode(existing, res);
 
   const otp = await randomOtp();
   const pending = await PendingUser.findOneAndUpdate(
-    { email: candidate.email },
+    { email },
     {
-      name: candidate.name,
+      name,
       password: await bcrypt.hash(password, 10),
       otpHash: await bcrypt.hash(otp, 10),
       otpSentAt: new Date(),
@@ -71,14 +66,14 @@ export const register = async (req, res) => {
     throw error;
   }
 
-  res.json({ message: "We sent a 6-digit code to your email", email: candidate.email });
+  res.json({ message: "We sent a 6-digit code to your email", email });
 };
 
 // Registration step 2: POST /api/auth/verify-email (multipart: email, otp, image)
 // Only now the account and the profile photo are created.
 export const verifyEmail = async (req, res) => {
   const { otp } = req.body;
-  const pending = await PendingUser.findOne({ email: normalizeEmail(req.body.email) });
+  const pending = await PendingUser.findOne({ email: req.body.email });
 
   if (!pending || pending.expiresAt < new Date()) {
     res.status(400);
@@ -89,19 +84,14 @@ export const verifyEmail = async (req, res) => {
     res.status(429);
     throw new Error("Too many wrong attempts. Please register again.");
   }
-  if (!(await bcrypt.compare(String(otp || ""), pending.otpHash))) {
+  if (!(await bcrypt.compare(otp, pending.otpHash))) {
     pending.attempts += 1;
     await pending.save();
     res.status(400);
     throw new Error("Invalid verification code");
   }
-  if (!req.file) {
-    res.status(400);
-    throw new Error("Profile photo is required");
-  }
 
-  const user = new User({ name: pending.name, email: pending.email, password: pending.password });
-  user.$locals.passwordHashed = true; // the password was already hashed in step 1
+  const user = new User({ name: pending.name, email: pending.email, password: pending.password }); // already hashed in step 1
   user.image = await uploadImage(req.file.buffer);
   try {
     await user.save();
@@ -121,7 +111,7 @@ export const verifyEmail = async (req, res) => {
 
 // POST /api/auth/resend-otp (email)
 export const resendOtp = async (req, res) => {
-  const pending = await PendingUser.findOne({ email: normalizeEmail(req.body.email) });
+  const pending = await PendingUser.findOne({ email: req.body.email });
   if (!pending) {
     res.status(400);
     throw new Error("Registration not found or expired. Please register again.");
@@ -144,12 +134,8 @@ export const resendOtp = async (req, res) => {
 // POST /api/auth/login
 export const login = async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
-    res.status(400);
-    throw new Error("Enter both email and password");
-  }
 
-  const user = await User.findOne({ email: String(email).toLowerCase().trim() }).select("+password");
+  const user = await User.findOne({ email }).select("+password");
   if (!user || !(await user.matchPassword(password))) {
     res.status(401);
     throw new Error("Invalid email or password");
@@ -160,7 +146,7 @@ export const login = async (req, res) => {
 
 // POST /api/auth/forgot-password
 export const forgotPassword = async (req, res) => {
-  const user = await User.findOne({ email: String(req.body.email || "").toLowerCase().trim() });
+  const user = await User.findOne({ email: req.body.email });
 
   if (user) {
     const token = await user.createResetToken();
@@ -185,11 +171,8 @@ export const forgotPassword = async (req, res) => {
 // POST /api/auth/reset-password/:token
 export const resetPassword = async (req, res) => {
   // The link token looks like "<userId>.<randomToken>": the id finds the user, bcrypt checks the token
-  const [id, token] = String(req.params.token).split(".");
-  const user =
-    mongoose.isValidObjectId(id) && token
-      ? await User.findOne({ _id: id, resetPasswordExpire: { $gt: Date.now() } }).select("+resetPasswordToken")
-      : null;
+  const [id, token] = req.params.token.split(".");
+  const user = await User.findOne({ _id: id, resetPasswordExpire: { $gt: Date.now() } }).select("+resetPasswordToken");
   const valid = user?.resetPasswordToken && (await bcrypt.compare(token, user.resetPasswordToken));
 
   if (!valid) {
@@ -197,7 +180,7 @@ export const resetPassword = async (req, res) => {
     throw new Error("Reset link is invalid or has expired");
   }
 
-  user.password = req.body.password;
+  user.password = await bcrypt.hash(req.body.password, 10);
   user.resetPasswordToken = undefined;
   user.resetPasswordExpire = undefined;
   await user.save();

@@ -12,8 +12,6 @@ export const getStudents = async (req, res) => {
 export const createStudent = async (req, res) => {
   const { name, email, course } = req.body;
   const student = new Student({ name, email, course, user: req.user._id });
-  await student.validate(); // validate first, so invalid data never triggers an image upload
-
   if (req.file) student.image = await uploadImage(req.file.buffer);
 
   try {
@@ -35,7 +33,6 @@ export const updateStudent = async (req, res) => {
   const { name, email, course } = req.body;
   const oldPublicId = student.image?.publicId;
   student.set({ name, email, course });
-  await student.validate();
 
   if (req.file) student.image = await uploadImage(req.file.buffer);
 
