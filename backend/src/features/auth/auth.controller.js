@@ -2,8 +2,8 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import User from "./user.model.js";
 import { uploadImage, deleteImage } from "../../utils/image.js";
-import { sendEmail } from "../../utils/sendEmail.js";
-import { welcomeMail, resetMail } from "./auth.mail.js";
+import { sendEmail } from "../../services/email.service.js";
+import { welcomeMail, resetMail } from "../../services/email.templates.js";
 
 const signToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "7d" });

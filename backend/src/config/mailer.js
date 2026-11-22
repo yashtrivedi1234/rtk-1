@@ -8,7 +8,7 @@ export let transporter = null;
 export const connectMailer = async () => {
   const missing = keys.filter((key) => !process.env[key]);
   if (missing.length) {
-    console.warn(`⚠️  Mailer not configured. Missing env: ${missing.join(", ")} (emails will be printed in the terminal in development)`);
+    console.warn(`⚠️  Mailer not configured. Missing env: ${missing.join(", ")} (emails will not be sent)`);
     return false;
   }
 

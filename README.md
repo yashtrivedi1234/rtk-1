@@ -24,12 +24,13 @@ RTK Query/
 │       │   ├── cloudinary.js         Cloudinary setup + "connected / failed" message
 │       │   └── mailer.js             Nodemailer setup + "connected / failed" message
 │       ├── features/
-│       │   ├── auth/                 user.model, auth.controller, auth.routes, auth.middleware (protect), auth.mail
+│       │   ├── auth/                 user.model, auth.controller, auth.routes, auth.middleware (protect)
 │       │   ├── students/             student.model, student.controller, student.routes
 │       │   └── dashboard/            dashboard.controller, dashboard.routes
+│       ├── services/                 email.service.js (send with Nodemailer), email.templates.js (welcome / reset emails)
 │       ├── middlewares/              shared: error, upload (multer), rateLimit
 │       ├── routes/index.js           mounts every feature under /api
-│       └── utils/                    regex.js, image.js (upload/delete), sendEmail.js
+│       └── utils/                    regex.js, image.js (upload / delete on Cloudinary)
 │
 └── frontend/
     ├── .env / .env.example           VITE_API_URL
@@ -58,12 +59,13 @@ StudentForm.jsx         Yup validation passes, addStudent(formData) is called
 student.api.js          POST /api/students   (RTK Query adds the Authorization header)
 app.js                  cors + json, then routes/index.js
 routes/index.js         /students -> protect (checks the token) -> student.routes.js
-student.controller.js   validates, uploads the photo to Cloudinary, saves
+student.controller.js   validates, uploads the photo to Cloudinary (utils/image.js), saves
 student.model.js        regex rules + MongoDB
 Response                RTK Query refetches the list and dashboard (tags) and a toast is shown
 ```
 
 MVC mapping: **Model** = `*.model.js`, **View** = React pages/components, **Controller** = `*.controller.js`.
+`services/` holds only the email code (`email.service.js` sends, `email.templates.js` builds the messages).
 
 ---
 
@@ -79,7 +81,8 @@ MVC mapping: **Model** = `*.model.js`, **View** = React pages/components, **Cont
 | Mailer | `Mailer connected` | `Mailer not configured. Missing env: ...` or `Mailer connection failed: ...` |
 
 Cloudinary and the mailer are optional at startup so you can still develop. Without Cloudinary, uploads
-return a clear 503 error. Without SMTP, emails are printed in the terminal (development only).
+return a clear 503 error. Without SMTP, emails are not sent: the welcome email is skipped (and logged as an error),
+and forgot password returns an error.
 
 ---
 
